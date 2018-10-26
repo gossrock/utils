@@ -2,9 +2,32 @@ from typing import NamedTuple, List, Optional
 import subprocess, shlex
 from subprocess import PIPE
 
+def sub_commands(command: str) -> List[str]:
+    """
+        splits a command string into sub commands based on '|' charactor
+    """
+    split_command = shlex.split(command)
+
+    if '|' in split_command:
+        commands: List[str] = []
+        sub_command: List[str] = []
+        for part in split_command:
+            if part == "|":
+                commands.append(" ".join(sub_command))
+                sub_command = []
+            else:
+                sub_command.append(part)
+        commands.append(" ".join(sub_command))
+        return commands
+    else:
+        return [command]
+
+
+
+
 class CommandResult(NamedTuple):
     command:str
-    return_code: int
+    code: int
     out:str
     error:str
 
@@ -24,8 +47,10 @@ BLANK_RESULT = CommandResult("",-1, "", "")
 
 def run(command: str, stdin: Optional[str] = None, encoding: str = 'utf-8') -> CommandResult:
     command = command.strip()
-    if '|' in command:
-        return _run_pipeline(command.split('|')) # Probobly not the best aproach
+    split_commands = sub_commands(command)
+
+    if len(split_commands) > 1:
+        return _run_pipeline(split_commands)
     else:
         process = subprocess.Popen(shlex.split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding=encoding)
         stdout, stderr = process.communicate(stdin)
