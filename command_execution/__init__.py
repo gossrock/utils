@@ -1,5 +1,5 @@
 from typing import NamedTuple, List, Optional
-import subprocess, shlex
+import subprocess, shlex, glob
 from subprocess import PIPE
 
 def sub_commands(command: str) -> List[str]:
@@ -22,6 +22,16 @@ def sub_commands(command: str) -> List[str]:
     else:
         return [command]
 
+def expand_wildcards(command: str) -> str:
+    split_command = shlex.split(command)
+    expanded_split_command: List[str] = []
+    for part in split_command:
+        expanded_part = glob.glob(part)
+        if expanded_part != []:
+            expanded_split_command += expanded_part
+        else:
+            expanded_split_command.append(part)
+    return " ".join(expanded_split_command)
 
 
 
@@ -47,15 +57,18 @@ BLANK_RESULT = CommandResult("",-1, "", "")
 
 def run(command: str, stdin: Optional[str] = None, encoding: str = 'utf-8') -> CommandResult:
     command = command.strip()
+    original_command = command
     split_commands = sub_commands(command)
 
     if len(split_commands) > 1:
-        return _run_pipeline(split_commands)
+        pipeline_results = _run_pipeline(split_commands)
+        return CommandResult(original_command, pipeline_results.code, pipeline_results.out, pipeline_results.error)
     else:
+        command = expand_wildcards(command)
         process = subprocess.Popen(shlex.split(command), stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding=encoding)
         stdout, stderr = process.communicate(stdin)
         return_code = process.wait()
-        return CommandResult(command, return_code, stdout, stderr)
+        return CommandResult(original_command, return_code, stdout, stderr)
 
 def _run_pipeline(commands: List[str], stdin: Optional[str] = None, encoding: str = 'utf-8') -> CommandResult:
     command_results = BLANK_RESULT
