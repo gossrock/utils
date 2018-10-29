@@ -85,3 +85,13 @@ def test_expand_wildcards(files_to_work_with) -> None:
     assert (expand_wildcards("ls -la testing_files_dir/[ab]") == 'ls -la testing_files_dir/a testing_files_dir/b' or
             expand_wildcards("ls -la testing_files_dir/[ab]") == 'ls -la testing_files_dir/b testing_files_dir/a')
     assert expand_wildcards("somecommand -abc testing_files_dir/a?") == 'somecommand -abc testing_files_dir/aa'
+
+
+def test_using_fizzbuzz() -> None:
+
+    results = run("python ./command_execution/test_command_to_run.py -E", stdin="123\n123")
+    assert results.out == '123\n123'
+
+    results = run("python ./command_execution/test_command_to_run.py -F -S 15 -p 0")
+    assert results.out == '3\n6\n9\n12\n15\n'
+    assert results.error == '5\n10\n15\n'
