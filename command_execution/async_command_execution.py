@@ -1,12 +1,14 @@
 from typing import List, Optional, NamedTuple
-from . import sub_commands, expand_wildcards, my_select
+from . import sub_commands, expand_wildcards
 import shlex
 import asyncio
+from asyncio.subprocess import Process
 from concurrent.futures._base import TimeoutError
 from asyncio.subprocess import PIPE
 
 class StreamName(NamedTuple):
     name: str
+
 STDIN = StreamName('stdin')
 STDOUT = StreamName('stdout')
 STDERR = StreamName('stderr')
@@ -19,8 +21,7 @@ class Command:
     command_string: str
     stdin: str
     all_output = List[OutputLine]
-
-    process: None
+    process: Optional[Process]
     return_code: Optional[int]
 
     def __init__(self,  command_string: str, stdin: Optional[str]=None) -> None:
@@ -31,14 +32,23 @@ class Command:
         self.stdin = stdin
         self.all_output = []
         self.return_code = None
+        self.process = None
 
     @property
-    def stdout(self) -> List[str]:
+    def stdout_lines(self) -> List[str]:
         return [output.data for output in self.all_output if output.stream == STDOUT]
 
     @property
-    def stderr(self) -> List[str]:
+    def stderr_lines(self) -> List[str]:
         return [output.data for output in self.all_output if output.stream == STDERR]
+
+    @property
+    def stdout(self) -> str:
+        return ''.join(self.stdout_lines)
+
+    @property
+    def stderr(self) -> str:
+        return ''.join(self.stderr_lines)
 
     async def run(self) -> None:
         asyncio.sleep(0)
