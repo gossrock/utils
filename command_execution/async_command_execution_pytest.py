@@ -1,9 +1,10 @@
 import asyncio
-from .async_command_execution import Command, STDOUT, STDERR
+from .async_command_execution import Command, CommandPipline, STDOUT, STDERR
 
 def test_basic_command_execution() -> None:
-    cmd = Command('python ./command_execution/test_command_to_run.py -E', '123\n123')
     loop = asyncio.get_event_loop()
+
+    cmd = Command('python ./command_execution/test_command_to_run.py -E', '123\n123')
     loop.run_until_complete(cmd.run())
     print(cmd.stdout)
     assert cmd.stdout == '123\n123'
@@ -42,3 +43,10 @@ def test_basic_command_execution() -> None:
     assert cmd.all_output[6].stream == STDOUT or cmd.all_output[6].stream == STDERR
     assert cmd.all_output[7].data == '15\n'
     assert cmd.all_output[7].stream == STDOUT or cmd.all_output[7].stream == STDERR
+
+def test_pipeline() -> None:
+    loop = asyncio.get_event_loop()
+    
+    cmd = CommandPipline("echo 'test' | python ./command_execution/test_command_to_run.py -E")
+    loop.run_until_complete(cmd.run())
+    assert cmd.stdout == 'test'

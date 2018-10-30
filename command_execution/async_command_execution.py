@@ -2,6 +2,7 @@ from typing import List, Optional, NamedTuple
 from . import sub_commands, expand_wildcards
 import shlex
 import asyncio
+from collections.abc import AsyncGenerator
 from asyncio.subprocess import Process
 from concurrent.futures._base import TimeoutError
 from asyncio.subprocess import PIPE
@@ -19,8 +20,8 @@ class OutputLine(NamedTuple):
 
 class Command:
     command_string: str
-    stdin: str
-    all_output = List[OutputLine]
+    stdin: Optional[str]
+    all_output: List["OutputLine"]
     process: Optional[Process]
     return_code: Optional[int]
 
@@ -64,7 +65,7 @@ class Command:
 
     async def _write_stdin_to_process(self) -> None:
         asyncio.sleep(0)
-        if self.stdin is not None and self.process is not None:
+        if self.stdin is not None and self.process is not None and self.process.stdin is not None:
             self.process.stdin.write(self.stdin.encode('utf-8'))
             self.process.stdin.write_eof()
 
@@ -88,17 +89,58 @@ class Command:
         if data != "":
             self.all_output.append(OutputLine(data.decode('utf-8'), stream_name))
 
-    async def get_live_data(self) -> OutputLine:
-        index = 0
+    async def get_live_data(self) -> AsyncGenerator:
+        index= 0
         while self.return_code is None or len(self.all_output) > index:
             await asyncio.sleep(0)
             if len(self.all_output) > index:
-                yield self.all_output[index]
+                yield (self.all_output[index])
                 index += 1
 
-class Pipline:
+class CommandPipline:
     command_string: str
-    command_pipline: List[str]
+    command_pipline: List[Command]
+    stdin: Optional[str]
+
+    def __init__(self, command_string: str, stdin: Optional[str]=None) -> None:
+        self.command_string = command_string
+        self.stdin = stdin
+        commands = sub_commands(command_string)
+        self.command_pipline = []
+        for command in commands:
+            self.command_pipline.append(Command(command))
+
+    async def run(self):
+        stdin = self.stdin
+        for command in self.command_pipline:
+            command.stdin = stdin
+            await command.run()
+            stdin = command.stdout
+
+    @property
+    def stdout(self):
+        return self.command_pipline[-1].stdout
+    @property
+    def stderr(self):
+        return self.command_pipline[-1].stderr
+
+    @property
+    def stdout_lines(self) -> List[str]:
+        return self.command_pipline[-1].stdout_lines
+
+    @property
+    def stderr_lines(self) -> List[str]:
+        return self.command_pipline[-1].stderr_lines
+
+    async def get_live_data(self) -> AsyncGenerator:
+        return self.command_pipline[-1].get_live_data()
+
+
+
+
+
+
+
 
 
 class CommandManager: ...
