@@ -18,7 +18,7 @@ class OutputLine(NamedTuple):
     data: str
     stream: StreamName
 
-class Command:
+class _SingleCommand:
     command_string: str
     stdin: Optional[str]
     all_output: List["OutputLine"]
@@ -97,9 +97,9 @@ class Command:
                 yield (self.all_output[index])
                 index += 1
 
-class CommandPipline:
+class Command:
     command_string: str
-    command_pipline: List[Command]
+    command_pipline: List[_SingleCommand]
     stdin: Optional[str]
 
     def __init__(self, command_string: str, stdin: Optional[str]=None) -> None:
@@ -108,7 +108,7 @@ class CommandPipline:
         commands = sub_commands(command_string)
         self.command_pipline = []
         for command in commands:
-            self.command_pipline.append(Command(command))
+            self.command_pipline.append(_SingleCommand(command))
 
     async def run(self):
         stdin = self.stdin
@@ -134,13 +134,5 @@ class CommandPipline:
 
     async def get_live_data(self) -> AsyncGenerator:
         return self.command_pipline[-1].get_live_data()
-
-
-
-
-
-
-
-
 
 class CommandManager: ...
