@@ -80,13 +80,13 @@ class _SingleCommand:
     async def _read_leftover_data(self, stream, stream_name:StreamName) -> None:
         asyncio.sleep(0)
         leftover_bytes = await stream.read(n=-1)
-        data_lines = leftover_bytes.split(b'\n')
+        data_lines = leftover_bytes.splitlines(True)
         for line in data_lines:
             await self._store_output_line(line, stream_name)
 
     async def _store_output_line(self, data: bytes, stream_name: StreamName) -> None:
         asyncio.sleep(0)
-        if data != "":
+        if data != b"":
             self.all_output.append(OutputLine(data.decode('utf-8'), stream_name))
 
     async def get_live_data(self) -> AsyncGenerator:
@@ -123,6 +123,10 @@ class Command:
     @property
     def stderr(self):
         return self.command_pipline[-1].stderr
+
+    @property
+    def return_code(self):
+        return self.command_pipline[-1].return_code
 
     @property
     def stdout_lines(self) -> List[str]:

@@ -1,5 +1,6 @@
 import pytest
-from . import sub_commands, expand_wildcards, run
+from . import sub_commands, expand_wildcards#, run
+from .syncro_command_execution_experiment import run
 import shlex
 
 @pytest.fixture(scope="module")
@@ -55,6 +56,7 @@ def test_run(files_to_work_with) -> None:
 
     results = run('ls testing_files_dir/*')
     assert results.command == 'ls testing_files_dir/*'
+
     assert results.out == (
 """testing_files_dir/a
 testing_files_dir/aa
@@ -63,7 +65,7 @@ testing_files_dir/b
 testing_files_dir/b.txt
 testing_files_dir/c
 """ )
-    assert results.error == ""
+    assert results.error.strip() == ""
     assert results.code == 0
 
     results = run('ls testing_files_dir/* | grep .txt')
@@ -90,7 +92,7 @@ def test_expand_wildcards(files_to_work_with) -> None:
 def test_using_fizzbuzz() -> None:
 
     results = run("python ./command_execution/test_command_to_run.py -E", stdin="123\n123")
-    assert results.out == '123\n123'
+    assert results.out.strip() == '123\n123'
 
     results = run("python ./command_execution/test_command_to_run.py -F -S 15 -p 0")
     assert results.out == '3\n6\n9\n12\n15\n'

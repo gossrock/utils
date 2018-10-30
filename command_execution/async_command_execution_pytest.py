@@ -6,7 +6,7 @@ def test_basic_command_execution() -> None:
 
     cmd = _SingleCommand('python ./command_execution/test_command_to_run.py -E', '123\n123')
     loop.run_until_complete(cmd.run())
-    print(cmd.stdout)
+    #print(cmd.stdout)
     assert cmd.stdout == '123\n123'
 
 
@@ -15,11 +15,11 @@ def test_basic_command_execution() -> None:
     loop.run_until_complete(cmd.run())
     assert cmd.stdout == '3\n6\n9\n12\n15\n'
     assert cmd.stderr == '5\n10\n15\n'
-    print(cmd.stdout)
-    print(cmd.stderr)
+    #print(cmd.stdout)
+    #print(cmd.stderr)
 
     async def display(cmd) -> None:
-        print(type(cmd.process))
+        #print(type(cmd.process))
         async for d in cmd.get_live_data():
             print(d)
 
@@ -49,4 +49,8 @@ def test_pipeline() -> None:
 
     cmd = Command("echo 'test' | python ./command_execution/test_command_to_run.py -E")
     loop.run_until_complete(cmd.run())
-    assert cmd.stdout == 'test'
+    assert cmd.stdout == 'test\n'
+
+    cmd = Command("ls command_execution/__init__* | grep 'pytest'")
+    loop.run_until_complete(cmd.run())
+    #print(cmd.stdout.encode('utf-8'))
