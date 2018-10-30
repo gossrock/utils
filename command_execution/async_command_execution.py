@@ -56,8 +56,10 @@ class Command:
         self.process = await asyncio.create_subprocess_exec(*cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         await self._write_stdin_to_process()
         while self.process.returncode is None:
-            await self._read_live_data()
-        await self._read_leftover_data()
+            await self._read_live_data(self.process.stdout, STDOUT)
+            await self._read_live_data(self.process.stderr, STDERR)
+        await self._read_leftover_data(self.process.stdout, STDOUT)
+        await self._read_leftover_data(self.process.stderr, STDERR)
         self.return_code = self.process.returncode
 
     async def _write_stdin_to_process(self) -> None:
@@ -66,35 +68,25 @@ class Command:
             self.process.stdin.write(self.stdin.encode('utf-8'))
             self.process.stdin.write_eof()
 
-    async def _read_live_data(self) -> None:
+    async def _read_live_data(self, stream, stream_name:StreamName) -> None:
         asyncio.sleep(0)
         try:
-            data = (await self._get_data(self.process.stdout))
-            if data != '':
-                self.all_output.append(OutputLine(data, STDOUT))
-        except TimeoutError as e:
-            pass
-        try:
-            data = await self._get_data(self.process.stderr)
-            if data != "":
-                self.all_output.append(OutputLine(data, STDERR))
+            output_bytes = await asyncio.wait_for(stream.readline(), 0)
+            await self._store_output_line(output_bytes, stream_name)
         except TimeoutError as e:
             pass
 
-
-    async def _get_data(self, stream) -> str:
+    async def _read_leftover_data(self, stream, stream_name:StreamName) -> None:
         asyncio.sleep(0)
-        output_bytes = await asyncio.wait_for(stream.readline(), 0)
-        return output_bytes.decode('utf-8')
+        leftover_bytes = await stream.read(n=-1)
+        data_lines = leftover_bytes.split(b'\n')
+        for line in data_lines:
+            await self._store_output_line(line, stream_name)
 
-    async def _read_leftover_data(self) -> None:
+    async def _store_output_line(self, data: bytes, stream_name: StreamName) -> None:
         asyncio.sleep(0)
-        for line in (await self.process.stdout.read(n=-1)).decode('utf-8').split('\n'):
-            if line != "":
-                self.all_output.append(OutputLine(line, STDOUT))
-        for line in (await self.process.stderr.read(n=-1)).decode('utf-8').split('\n'):
-            if line.strip() != "":
-                self.all_output.append(OutputLine(line, STDERR))
+        if data != "":
+            self.all_output.append(OutputLine(data.decode('utf-8'), stream_name))
 
     async def get_live_data(self) -> OutputLine:
         index = 0
