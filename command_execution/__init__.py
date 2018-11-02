@@ -42,13 +42,14 @@ def expand_wildcards(command: str) -> str:
     expanded_split_command: List[str] = []
     for part in split_command:
         expanded_part = glob.glob(part)
-        if expanded_part is not []:
+        if expanded_part != []:
             expanded_split_command += expanded_part
         else:
             expanded_split_command.append(part)
     return " ".join(expanded_split_command)
 
 ####
+
 
 class StreamName(NamedTuple):
     '''
@@ -169,13 +170,17 @@ class _SingleCommand:
             if len(self.all_output) > index:
                 yield (self.all_output[index])
                 index += 1
+    def give_live_data(self, data: str) -> None:
+        if self.process is not None:
+            self.process.stdin.write(data.encode('utf-8')) # type: ignore
+
 
 class Command:
     command_string: str
     command_pipline: List[_SingleCommand]
     stdin: Optional[str]
 
-    def __init__(self, command_string: str, stdin: str = None) -> object:
+    def __init__(self, command_string: str, stdin: str = None) -> None:
         self.command_string = command_string
         self.stdin = stdin
         commands = sub_commands(command_string)
@@ -211,5 +216,15 @@ class Command:
 
     async def get_live_data(self) -> AsyncGenerator:
         return self.command_pipline[-1].get_live_data()
+
+    def give_live_data(self, data: str) -> None:
+        '''
+        used to give data after start of command execution but (obviously)
+        before end. Will only work with the first in a piped series of
+        commands that has not been given any 'stdin' string.
+        :param data: str
+        :return: None
+        '''
+        self.command_pipline[0].give_live_data(data)
 
 class CommandManager: ...
