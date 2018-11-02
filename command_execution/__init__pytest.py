@@ -1,10 +1,10 @@
-import pytest
+import pytest #type: ignore
 import asyncio
 from . import sub_commands, expand_wildcards, run, _SingleCommand, Command, STDOUT, STDERR
 
 import shlex
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module") #type: ignore
 def files_to_work_with() -> None:
     run("mkdir 'testing_files_dir'")
     run('touch testing_files_dir/a')
@@ -153,3 +153,21 @@ def test_pipeline() -> None:
     cmd = Command("ls command_execution/__init__* | grep 'pytest'")
     loop.run_until_complete(cmd.run())
     #print(cmd.stdout.encode('utf-8'))
+
+def test_giving_input() -> None:
+    cmd = Command("python ./command_execution/test_command_to_run.py -I")
+
+    async def give_input(command) -> None:
+        print('give_input running')
+        await asyncio.sleep(2)
+        command.give_live_data('test\n')
+
+    loop = asyncio.get_event_loop()
+    asyncio.ensure_future(give_input(cmd))
+    loop.run_until_complete(cmd.run())
+    assert 'responce: test' in cmd.stdout
+
+
+
+
+
