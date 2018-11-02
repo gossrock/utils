@@ -1,3 +1,9 @@
+"""
+    command_execution is a module designed to make cli scripting a bit easier.
+    It attempts to cover both syncronous and asyncronus(asyncio) aproches as
+    well as accessing output while the command is still running.
+"""
+
 from typing import NamedTuple, List, Optional
 import subprocess, shlex, glob
 import asyncio
@@ -6,6 +12,7 @@ from collections.abc import AsyncGenerator
 from asyncio.subprocess import Process
 from concurrent.futures._base import TimeoutError
 
+#### Command Parsing utilities #####
 def sub_commands(command: str) -> List[str]:
     """
         splits a command string into sub commands based on '|' charactor
@@ -27,55 +34,62 @@ def sub_commands(command: str) -> List[str]:
         return [command]
 
 def expand_wildcards(command: str) -> str:
+    '''
+        expands any '*', '?' or [] type cli wildcards so that these wildcards
+        will work as exspected.
+    '''
     split_command = shlex.split(command)
     expanded_split_command: List[str] = []
     for part in split_command:
         expanded_part = glob.glob(part)
-        if expanded_part != []:
+        if expanded_part is not []:
             expanded_split_command += expanded_part
         else:
             expanded_split_command.append(part)
     return " ".join(expanded_split_command)
 
-
-
-class CommandResult(NamedTuple):
-    command:str
-    code: int
-    out:str
-    error:str
-
-    def __str__(self) -> str:
-        return_val = '=============================================\n'
-        return_val += f'COMMAND:{self.command}\n'
-        if self.out != '':
-            return_val += '=====STDOUT=====\n'
-            return_val += self.out+'\n'
-        if self.error != '':
-            return_val += '=====STDERROR=====\n'
-            return_val += self.error+'\n'
-        return_val += '============================================='
-        return return_val
-
-BLANK_RESULT = CommandResult("",-1, "", "")
-
-def run(command: str, stdin: Optional[str] = None, encoding: str = 'utf-8') -> CommandResult:
-    cmd = Command(command, stdin)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(cmd.run())
-    return CommandResult(cmd.command_string, cmd.return_code, cmd.stdout, cmd.stderr)
-
+####
 
 class StreamName(NamedTuple):
+    '''
+        mainly used as the type for the following STDIN, STDOUT and STDERR constants
+    '''
     name: str
+
 
 STDIN = StreamName('stdin')
 STDOUT = StreamName('stdout')
 STDERR = StreamName('stderr')
 
 class OutputLine(NamedTuple):
+    '''
+        this is used as a way to unify the stdout and stderr output into a single
+        data stricture without loosing where it came from.
+    '''
     data: str
     stream: StreamName
+
+class CommandResult(NamedTuple):
+    '''
+        once the command is done running this can be used as an inmutable of the
+        result of the commands execution.
+    '''
+    command_string: str
+    return_code: int
+    stdout: str
+    stderr: str
+
+##### Main Functionallity ######
+
+def run(command: str, stdin: Optional[str] = None) -> CommandResult:
+    '''
+        the function that can be used for normal sycronus scripts (only one command
+        runs at a time and no need to see the data as it arrives)
+    '''
+    cmd = Command(command, stdin)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(cmd.run())
+    return CommandResult(cmd.command_string, cmd.return_code, cmd.stdout, cmd.stderr)
 
 class _SingleCommand:
     command_string: str
@@ -161,7 +175,7 @@ class Command:
     command_pipline: List[_SingleCommand]
     stdin: Optional[str]
 
-    def __init__(self, command_string: str, stdin: Optional[str]=None) -> None:
+    def __init__(self, command_string: str, stdin: str = None) -> object:
         self.command_string = command_string
         self.stdin = stdin
         commands = sub_commands(command_string)
@@ -169,7 +183,7 @@ class Command:
         for command in commands:
             self.command_pipline.append(_SingleCommand(command))
 
-    async def run(self):
+    async def run(self) -> None:
         stdin = self.stdin
         for command in self.command_pipline:
             command.stdin = stdin
