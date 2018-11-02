@@ -17,6 +17,7 @@ def setup_parser()-> argparse.ArgumentParser:
     parser.add_argument('stdin', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
     parser.add_argument('-E', '--echo', action='store_true', help='echos stdin to stdout')
     parser.add_argument('-F', '--fizzbuzz', action='store_true', help='do a variation of the fizzbuzz problem but with stdout and stderr')
+    parser.add_argument('-I', '--inputoutput', action='store_true', help='take input and return it as output')
     parser.add_argument('-s', '--start', type=int, default=1, help='the number to start from')
     parser.add_argument('-S', '--stop', type=int, default=100, help='the number to stop at')
     parser.add_argument('-o', '--stdoutmult', type=int, default=3, help='all numbers that are a multiple of this will be printed on stdout')
@@ -35,3 +36,7 @@ if __name__ == '__main__':
 
     if args.fizzbuzz:
         fizzbuzz(args.start, args.stop, args.stdoutmult, args.stderrmult, args.pause)
+
+    if args.inputoutput:
+        response = input('your input: ')
+        print(f'your response: {response}')
