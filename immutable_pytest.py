@@ -1,6 +1,6 @@
 from immutable import immutable
 
-from pytest import raises
+from pytest import raises # type: ignore
 
 @immutable
 class MyTestClass:
@@ -22,4 +22,6 @@ def test_immutable() -> None:
         A.a = 3
 
     with raises(AttributeError):
-        A.c = 3
+        # exspected failure
+        A.c = 3 #type: ignore
+
