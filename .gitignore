@@ -1,6 +1,7 @@
 # my setup
 .venv
 .pytest_cache
+.dmypy.json
 
 
 # Byte-compiled / optimized / DLL files
