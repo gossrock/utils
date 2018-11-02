@@ -165,7 +165,7 @@ def test_giving_input() -> None:
     loop = asyncio.get_event_loop()
     asyncio.ensure_future(give_input(cmd))
     loop.run_until_complete(cmd.run())
-    assert 'responce: test' in cmd.stdout
+    assert 'response: test' in cmd.stdout
 
 
 
