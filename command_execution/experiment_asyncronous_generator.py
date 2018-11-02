@@ -1,7 +1,8 @@
+from typing import List
 import asyncio
 import random
 
-data = []
+data: List[int] = []
 
 async def generate_data():
     while True:
