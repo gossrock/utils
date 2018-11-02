@@ -26,39 +26,39 @@ def test_sub_commands() -> None:
 
 def test_run(files_to_work_with) -> None:
     results = run('ls __init__.py')
-    assert results.command == 'ls __init__.py'
-    assert results.out == "__init__.py\n"
-    assert results.error == ''
-    assert results.code == 0
+    assert results.command_string == 'ls __init__.py'
+    assert results.stdout == "__init__.py\n"
+    assert results.stderr == ''
+    assert results.return_code == 0
 
     results = run('touch test')
-    assert results.command == 'touch test'
-    assert results.out == ""
-    assert results.error == ''
-    assert results.code == 0
+    assert results.command_string == 'touch test'
+    assert results.stdout == ""
+    assert results.stderr == ''
+    assert results.return_code == 0
 
     results = run('ls test')
-    assert results.command == 'ls test'
-    assert results.out == "test\n"
-    assert results.error == ''
-    assert results.code == 0
+    assert results.command_string == 'ls test'
+    assert results.stdout == "test\n"
+    assert results.stderr == ''
+    assert results.return_code == 0
 
     results = run('rm test')
-    assert results.command == 'rm test'
-    assert results.out == ""
-    assert results.error == ''
-    assert results.code == 0
+    assert results.command_string == 'rm test'
+    assert results.stdout == ""
+    assert results.stderr == ''
+    assert results.return_code == 0
 
     results = run('ls test')
-    assert results.command == 'ls test'
-    assert results.out == ""
-    assert results.error == "ls: cannot access 'test': No such file or directory\n"
-    assert results.code == 2
+    assert results.command_string == 'ls test'
+    assert results.stdout == ""
+    assert results.stderr == "ls: cannot access 'test': No such file or directory\n"
+    assert results.return_code == 2
 
     results = run('ls testing_files_dir/*')
-    assert results.command == 'ls testing_files_dir/*'
+    assert results.command_string == 'ls testing_files_dir/*'
 
-    assert results.out == (
+    assert results.stdout == (
 """testing_files_dir/a
 testing_files_dir/aa
 testing_files_dir/a.txt
@@ -66,17 +66,17 @@ testing_files_dir/b
 testing_files_dir/b.txt
 testing_files_dir/c
 """ )
-    assert results.error.strip() == ""
-    assert results.code == 0
+    assert results.stderr.strip() == ""
+    assert results.return_code == 0
 
     results = run('ls testing_files_dir/* | grep .txt')
-    assert results.command == 'ls testing_files_dir/* | grep .txt'
-    assert results.out == (
+    assert results.command_string == 'ls testing_files_dir/* | grep .txt'
+    assert results.stdout == (
 """testing_files_dir/a.txt
 testing_files_dir/b.txt
 """ )
-    assert results.error == ""
-    assert results.code == 0
+    assert results.stderr == ""
+    assert results.return_code == 0
 
 def test_expand_wildcards(files_to_work_with) -> None:
     assert expand_wildcards("testing_files_dir/*.txt") == 'testing_files_dir/a.txt testing_files_dir/b.txt'
@@ -93,11 +93,11 @@ def test_expand_wildcards(files_to_work_with) -> None:
 def test_using_fizzbuzz() -> None:
 
     results = run("python ./command_execution/test_command_to_run.py -E", stdin="123\n123")
-    assert results.out.strip() == '123\n123'
+    assert results.stdout == '123\n123'
 
     results = run("python ./command_execution/test_command_to_run.py -F -S 15 -p 0")
-    assert results.out == '3\n6\n9\n12\n15\n'
-    assert results.error == '5\n10\n15\n'
+    assert results.stdout == '3\n6\n9\n12\n15\n'
+    assert results.stderr == '5\n10\n15\n'
 
 
 def test_basic_command_execution() -> None:
