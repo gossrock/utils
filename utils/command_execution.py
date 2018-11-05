@@ -234,4 +234,23 @@ class Command:
         '''
         self.command_pipline[0].give_live_data(data)
 
-class CommandManager: ...
+class CommandManager:
+    commands_to_run: List[Command]
+
+    def __init__(self) -> None:
+        self.commands_to_run = []
+
+    def add(self, cmd: Command) -> None:
+        self.commands_to_run.append(cmd)
+
+    def run_all(self) -> None:
+        loop = asyncio.get_event_loop()
+        for command in self.commands_to_run:
+            asyncio.ensure_future(command.run())
+        loop.run_until_complete(self._loop_finisher())
+
+    async def _loop_finisher(self) -> None:
+        while any([(cmd.return_code is None) for cmd in self.commands_to_run]):
+            await asyncio.sleep(0)
+
+

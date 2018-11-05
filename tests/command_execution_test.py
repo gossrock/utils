@@ -1,7 +1,8 @@
 import pytest #type: ignore
 import asyncio
-from utils.command_execution import sub_commands, expand_wildcards, run, _SingleCommand, Command, STDOUT, STDERR
+from utils.command_execution import sub_commands, expand_wildcards, run, _SingleCommand, Command, STDOUT, STDERR, CommandManager
 from typing import Callable
+import time
 
 
 @pytest.fixture(scope="module") #type: ignore
@@ -161,3 +162,24 @@ def test_giving_input() -> None:
     asyncio.ensure_future(give_input(cmd))
     loop.run_until_complete(cmd.run())
     assert 'response: test' in cmd.stdout
+
+def test_command_manager() -> None:
+    start = time.time()
+
+    cm = CommandManager()
+    c1 = Command('python ./tests/test_command_to_run.py -F -S 15 -p 0.1')
+    c2 = Command('python ./tests/test_command_to_run.py -F -S 14 -p 0.1')
+    cm.add(c1)
+    cm.add(c2)
+    cm.run_all()
+
+    end = time.time()
+    total_time = end - start
+
+    assert total_time < 1.6
+    assert c1.stdout_lines == ['3\n', '6\n', '9\n', '12\n', '15\n']
+    assert c1.stderr_lines == ['5\n', '10\n', '15\n']
+    assert c2.stdout_lines == ['3\n', '6\n', '9\n', '12\n']
+    assert c2.stderr_lines == ['5\n', '10\n']
+
+
