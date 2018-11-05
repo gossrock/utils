@@ -1,5 +1,6 @@
 from typing import Any
-def immutable(mutableclass: Any): # can't quite figure out type annotation
+
+def immutable(mutableclass: type) -> type:
     class immutable:
         def __init__(self,*args: Any, **kwds: Any) -> None:
             super(immutable, self).__setattr__('_mutable', mutableclass(*args,**kwds))

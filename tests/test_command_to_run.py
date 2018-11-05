@@ -2,7 +2,7 @@ import sys
 import time
 import argparse
 
-def fizzbuzz(start=1, max=100, out_mult=3, err_mult=5, pause=1):
+def fizzbuzz(start: int = 1, max: int = 100, out_mult: int = 3, err_mult: int = 5, pause: float = 1) -> None:
     for n in range(start, max+1):
         if n % out_mult == 0:
             print(f'{n}', file=sys.stdout)

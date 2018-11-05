@@ -1,4 +1,4 @@
-from immutable import immutable
+from utils.immutable import immutable
 
 from pytest import raises # type: ignore
 
@@ -14,14 +14,14 @@ class MyTestClass:
 
 def test_immutable() -> None:
     A = MyTestClass(5, 'Me')
-    assert ( A.a == 5*2 )
-    assert ( A.b == 'Me' )
-    assert ( A.some_other_method(2) == '20--MeMe' )
+    assert A.a == 5*2
+    assert A.b == 'Me'
+    assert A.some_other_method(2) == '20--MeMe'
 
     with raises(AttributeError):
         A.a = 3
 
     with raises(AttributeError):
         # exspected failure
-        A.c = 3 #type: ignore
+        A.c = 3  # type: ignore
 

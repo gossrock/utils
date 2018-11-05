@@ -1,8 +1,8 @@
 import pytest #type: ignore
 import asyncio
-from . import sub_commands, expand_wildcards, run, _SingleCommand, Command, STDOUT, STDERR
+from utils.command_execution import sub_commands, expand_wildcards, run, _SingleCommand, Command, STDOUT, STDERR
+from typing import Callable
 
-import shlex
 
 @pytest.fixture(scope="module") #type: ignore
 def files_to_work_with() -> None:
@@ -24,12 +24,7 @@ def test_sub_commands() -> None:
     assert sub_commands('touch "test | test"') == ['touch "test | test"']
 
 
-def test_run(files_to_work_with) -> None:
-    results = run('ls __init__.py')
-    assert results.command_string == 'ls __init__.py'
-    assert results.stdout == "__init__.py\n"
-    assert results.stderr == ''
-    assert results.return_code == 0
+def test_run(files_to_work_with: Callable) -> None:
 
     results = run('touch test')
     assert results.command_string == 'touch test'
@@ -78,7 +73,7 @@ testing_files_dir/b.txt
     assert results.stderr == ""
     assert results.return_code == 0
 
-def test_expand_wildcards(files_to_work_with) -> None:
+def test_expand_wildcards(files_to_work_with: Callable) -> None:
     assert expand_wildcards("testing_files_dir/*.txt") == 'testing_files_dir/a.txt testing_files_dir/b.txt'
     assert (expand_wildcards("testing_files_dir/[ab]") == 'testing_files_dir/a testing_files_dir/b' or
             expand_wildcards("testing_files_dir/[ab]") == 'testing_files_dir/b testing_files_dir/a')
@@ -92,10 +87,10 @@ def test_expand_wildcards(files_to_work_with) -> None:
 
 def test_using_fizzbuzz() -> None:
 
-    results = run("python ./command_execution/test_command_to_run.py -E", stdin="123\n123")
+    results = run("python ./tests/test_command_to_run.py -E", stdin="123\n123")
     assert results.stdout == '123\n123'
 
-    results = run("python ./command_execution/test_command_to_run.py -F -S 15 -p 0")
+    results = run("python ./tests/test_command_to_run.py -F -S 15 -p 0")
     assert results.stdout == '3\n6\n9\n12\n15\n'
     assert results.stderr == '5\n10\n15\n'
 
@@ -103,26 +98,26 @@ def test_using_fizzbuzz() -> None:
 def test_basic_command_execution() -> None:
     loop = asyncio.get_event_loop()
 
-    cmd = _SingleCommand('python ./command_execution/test_command_to_run.py -E', '123\n123')
+    cmd = _SingleCommand('python ./tests/test_command_to_run.py -E', '123\n123')
     loop.run_until_complete(cmd.run())
     #print(cmd.stdout)
     assert cmd.stdout == '123\n123'
 
 
 
-    cmd = _SingleCommand("python ./command_execution/test_command_to_run.py -F -S 15 -p 0")
+    cmd = _SingleCommand("python ./tests/test_command_to_run.py -F -S 15 -p 0")
     loop.run_until_complete(cmd.run())
     assert cmd.stdout == '3\n6\n9\n12\n15\n'
     assert cmd.stderr == '5\n10\n15\n'
     #print(cmd.stdout)
     #print(cmd.stderr)
 
-    async def display(cmd) -> None:
+    async def display(cmd: _SingleCommand) -> None:
         #print(type(cmd.process))
         async for d in cmd.get_live_data():
             print(d)
 
-    cmd = _SingleCommand("python ./command_execution/test_command_to_run.py -F -S 15 -p 0.1")
+    cmd = _SingleCommand("python ./tests/test_command_to_run.py -F -S 15 -p 0.1")
     asyncio.ensure_future(cmd.run())
     loop.run_until_complete(display(cmd))
 
@@ -146,18 +141,18 @@ def test_basic_command_execution() -> None:
 def test_pipeline() -> None:
     loop = asyncio.get_event_loop()
 
-    cmd = Command("echo 'test' | python ./command_execution/test_command_to_run.py -E")
+    cmd = Command("echo 'test' | python ./tests/test_command_to_run.py -E")
     loop.run_until_complete(cmd.run())
     assert cmd.stdout == 'test\n'
 
-    cmd = Command("ls command_execution/__init__* | grep 'pytest'")
+    cmd = Command("ls tests/command* | grep 'test'")
     loop.run_until_complete(cmd.run())
-    #print(cmd.stdout.encode('utf-8'))
+    assert cmd.stdout == 'tests/command_execution_test.py\n'
 
 def test_giving_input() -> None:
-    cmd = Command("python ./command_execution/test_command_to_run.py -I")
+    cmd = Command("python ./tests/test_command_to_run.py -I")
 
-    async def give_input(command) -> None:
+    async def give_input(command: Command) -> None:
         print('give_input running')
         await asyncio.sleep(2)
         command.give_live_data('test\n')
@@ -166,8 +161,3 @@ def test_giving_input() -> None:
     asyncio.ensure_future(give_input(cmd))
     loop.run_until_complete(cmd.run())
     assert 'response: test' in cmd.stdout
-
-
-
-
-

@@ -82,6 +82,7 @@ class CommandResult(NamedTuple):
 
 ##### Main Functionallity ######
 
+
 def run(command: str, stdin: Optional[str] = None) -> CommandResult:
     '''
         the function that can be used for normal sycronus scripts (only one command
@@ -90,7 +91,11 @@ def run(command: str, stdin: Optional[str] = None) -> CommandResult:
     cmd = Command(command, stdin)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(cmd.run())
-    return CommandResult(cmd.command_string, cmd.return_code, cmd.stdout, cmd.stderr)
+    if cmd.return_code is not None:
+        return CommandResult(cmd.command_string, cmd.return_code, cmd.stdout, cmd.stderr)
+    else:
+        raise Exception("We shouldn't get here but if we do it's bad. (loop completed without return_code being set)")
+
 
 class _SingleCommand:
     command_string: str
@@ -133,8 +138,10 @@ class _SingleCommand:
         while self.process.returncode is None:
             await self._read_live_data(self.process.stdout, STDOUT)
             await self._read_live_data(self.process.stderr, STDERR)
-        await self._read_leftover_data(self.process.stdout, STDOUT)
-        await self._read_leftover_data(self.process.stderr, STDERR)
+        if self.process.stdout is not None:
+            await self._read_leftover_data(self.process.stdout, STDOUT)
+        if self.process.stderr is not None:
+            await self._read_leftover_data(self.process.stderr, STDERR)
         self.return_code = self.process.returncode
 
     async def _write_stdin_to_process(self) -> None:
@@ -143,7 +150,7 @@ class _SingleCommand:
             self.process.stdin.write(self.stdin.encode('utf-8'))
             self.process.stdin.write_eof()
 
-    async def _read_live_data(self, stream, stream_name:StreamName) -> None:
+    async def _read_live_data(self, stream: asyncio.StreamReader, stream_name:StreamName) -> None:
         asyncio.sleep(0)
         try:
             output_bytes = await asyncio.wait_for(stream.readline(), 0)
@@ -151,7 +158,7 @@ class _SingleCommand:
         except TimeoutError as e:
             pass
 
-    async def _read_leftover_data(self, stream, stream_name:StreamName) -> None:
+    async def _read_leftover_data(self, stream: asyncio.StreamReader, stream_name:StreamName) -> None:
         asyncio.sleep(0)
         leftover_bytes = await stream.read(n=-1)
         data_lines = leftover_bytes.splitlines(True)
@@ -180,7 +187,7 @@ class Command:
     command_pipline: List[_SingleCommand]
     stdin: Optional[str]
 
-    def __init__(self, command_string: str, stdin: str = None) -> None:
+    def __init__(self, command_string: str, stdin: Optional[str] = None) -> None:
         self.command_string = command_string
         self.stdin = stdin
         commands = sub_commands(command_string)
@@ -196,14 +203,14 @@ class Command:
             stdin = command.stdout
 
     @property
-    def stdout(self):
+    def stdout(self) -> str:
         return self.command_pipline[-1].stdout
     @property
-    def stderr(self):
+    def stderr(self) -> str:
         return self.command_pipline[-1].stderr
 
     @property
-    def return_code(self):
+    def return_code(self) -> Optional[int]:
         return self.command_pipline[-1].return_code
 
     @property
